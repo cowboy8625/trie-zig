@@ -74,14 +74,23 @@ const Node = struct {
         return false;
     }
 
-    fn getMatches(self: *const Node, prefix: []const u8, list: *std.ArrayList([]const u8), word_builder: *[]u8, index: usize) !void {
+    /// Up to user to free the returned list
+    fn getMatches(
+        self: *const Node,
+        prefix: []const u8,
+        list: *std.ArrayList([]const u8),
+        word_builder: *[]u8,
+        index: usize,
+    ) !void {
         if (self.char) |c| if (prefix.len > index and c != prefix[index]) {
             return;
         };
+        word_builder.*[index] = self.char.?;
         if (self.is_end) {
             // HACK: Pretty confedent I can unwrap this optional value
             word_builder.*[index] = self.char.?;
-            try list.append(word_builder.*[0..index]);
+            const word = try self.alloc.dupe(u8, word_builder.*[0 .. index + 1]);
+            try list.append(word);
         }
 
         for (self.children.items) |child| {
@@ -180,18 +189,19 @@ test "getMatches" {
     const myWords = [_][]const u8{ "hello", "hey", "hi", "howdy", "height" };
     const trie = try Self.initFrom(alloc, &myWords);
     defer trie.deinit();
+
     var list = std.ArrayList([]const u8).init(alloc);
+    defer for (list.items) |w| {
+        alloc.free(w);
+    };
     defer list.deinit();
+
     try trie.getMatches("h", &list);
     try testing.expectEqual(@as(usize, 5), list.items.len);
 
-    // print("\x1b[31m{any}\x1b[0m", .{list});
-    // for (list.items) |word| {
-    //     print("\x1b[31mWORD: {s}\x1b[0m", .{word});
-    // }
-    // try testing.expectEqualStrings("hi", word);
-    // try testing.expectEqualStrings("hey", word);
-    // try testing.expectEqualStrings("hello", list.items[2]);
-    // try testing.expectEqualStrings("height", list.items[3]);
-    // try testing.expectEqualStrings("howdy", list.items[4]);
+    try testing.expectEqual("hi", list.items[0]);
+    try testing.expectEqual("hey", list.items[1]);
+    try testing.expectEqual("hello", list.items[2]);
+    try testing.expectEqual("height", list.items[3]);
+    try testing.expectEqual("howdy", list.items[4]);
 }
