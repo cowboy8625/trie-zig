@@ -189,19 +189,18 @@ test "getMatches" {
     const myWords = [_][]const u8{ "hello", "hey", "hi", "howdy", "height" };
     const trie = try Self.initFrom(alloc, &myWords);
     defer trie.deinit();
-
     var list = std.ArrayList([]const u8).init(alloc);
-    defer for (list.items) |w| {
-        alloc.free(w);
-    };
-    defer list.deinit();
-
     try trie.getMatches("h", &list);
-    try testing.expectEqual(@as(usize, 5), list.items.len);
 
-    try testing.expectEqual("hi", list.items[0]);
-    try testing.expectEqual("hey", list.items[1]);
-    try testing.expectEqual("hello", list.items[2]);
-    try testing.expectEqual("height", list.items[3]);
-    try testing.expectEqual("howdy", list.items[4]);
+    try testing.expectEqual(@as(usize, 5), list.items.len);
+    try testing.expectEqualStrings("hello", list.items[0]);
+    try testing.expectEqualStrings("hey", list.items[1]);
+    try testing.expectEqualStrings("height", list.items[2]);
+    try testing.expectEqualStrings("hi", list.items[3]);
+    try testing.expectEqualStrings("howdy", list.items[4]);
+
+    for (list.items) |w| {
+        alloc.free(w);
+    }
+    list.deinit();
 }
